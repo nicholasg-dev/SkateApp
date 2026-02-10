@@ -1,0 +1,5 @@
+{
+  "name": "SkateApp",
+  "description": "The ultimate sports team management application for hockey. Manage rosters, track league fees, handle substitutes, and automate availability.",
+  "requestFramePermissions": []
+}
