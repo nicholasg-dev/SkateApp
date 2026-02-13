@@ -11,10 +11,7 @@
   SECRETS_SCAN_ENABLED = "false"
 
 # Ensure Netlify Functions are never caught by the SPA catch-all
-[[redirects]]
-  from = "/.netlify/functions/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
+
 
 # SPA fallback — ensures all routes serve index.html
 # (HashRouter doesn't strictly need this, but it future-proofs for BrowserRouter)
