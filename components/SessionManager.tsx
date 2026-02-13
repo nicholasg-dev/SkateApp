@@ -19,7 +19,7 @@ const SessionManager: React.FC<SessionManagerProps> = ({
   isAdmin
 }) => {
   const [config, setConfig] = useState<SessionConfig>({
-    date: '2024-11-25',
+    date: new Date().toISOString().split('T')[0],
     time: '20:00',
     location: 'Skating Edge Arena',
     maxPlayers: 20,
