@@ -18,16 +18,11 @@ export default defineConfig(({ mode }) => {
             'vendor-react': ['react', 'react-dom', 'react-router-dom'],
             // Recharts is ~300kB and only used on Dashboard
             'vendor-recharts': ['recharts'],
-            // Google GenAI SDK — only used in SessionManager
-            'vendor-genai': ['@google/genai'],
           },
         },
       },
     },
-    define: {
-      'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
-    },
+    define: {},
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

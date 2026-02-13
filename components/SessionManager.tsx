@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Player, SessionConfig, RsvpStatus } from '../types';
-import { generateInviteEmail } from '../services/geminiService';
+import { generateInviteEmail } from '../services/aiService';
 import { Send, RefreshCw, Wand2, CheckCircle, XCircle, Clock, Lock, Mail, Loader2 } from 'lucide-react';
 
 interface SessionManagerProps {
@@ -196,8 +196,8 @@ const SessionManager: React.FC<SessionManagerProps> = ({
             </button>
             {sendResult && (
               <div className={`p-3 rounded-lg text-sm font-medium ${sendResult.success
-                  ? 'bg-green-50 text-green-700 border border-green-200'
-                  : 'bg-red-50 text-red-700 border border-red-200'
+                ? 'bg-green-50 text-green-700 border border-green-200'
+                : 'bg-red-50 text-red-700 border border-red-200'
                 }`}>
                 {sendResult.message}
               </div>
@@ -243,9 +243,9 @@ const SessionManager: React.FC<SessionManagerProps> = ({
                   <div>
                     <div className="font-medium text-sm text-slate-900">{player.name}</div>
                     <div className={`text-xs font-semibold ${player.status === RsvpStatus.ACCEPTED ? 'text-green-600' :
-                        player.status === RsvpStatus.DECLINED ? 'text-red-600' :
-                          player.status === RsvpStatus.NO_REPLY ? 'text-slate-400' :
-                            'text-yellow-600'
+                      player.status === RsvpStatus.DECLINED ? 'text-red-600' :
+                        player.status === RsvpStatus.NO_REPLY ? 'text-slate-400' :
+                          'text-yellow-600'
                       }`}>{player.status.replace('_', ' ')}</div>
                   </div>
                   <div className="flex gap-1">
