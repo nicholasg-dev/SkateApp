@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Player, SessionConfig, RsvpStatus } from '../types';
 import { generateInviteEmail } from '../services/geminiService';
-import { Send, RefreshCw, Wand2, CheckCircle, XCircle, Clock, Lock } from 'lucide-react';
+import { Send, RefreshCw, Wand2, CheckCircle, XCircle, Clock, Lock, Mail, Loader2 } from 'lucide-react';
 
 interface SessionManagerProps {
   players: Player[];
@@ -11,9 +11,9 @@ interface SessionManagerProps {
   isAdmin: boolean;
 }
 
-const SessionManager: React.FC<SessionManagerProps> = ({ 
-  players, 
-  updatePlayerStatus, 
+const SessionManager: React.FC<SessionManagerProps> = ({
+  players,
+  updatePlayerStatus,
   resetAllStatuses,
   finalizeNoReplies,
   isAdmin
@@ -25,9 +25,11 @@ const SessionManager: React.FC<SessionManagerProps> = ({
     maxPlayers: 22,
     inviteMessage: ''
   });
-  
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [invitesSent, setInvitesSent] = useState(false);
+  const [isSendingEmails, setIsSendingEmails] = useState(false);
+  const [sendResult, setSendResult] = useState<{ success: boolean; message: string } | null>(null);
 
   // Security Check
   if (!isAdmin) {
@@ -49,12 +51,56 @@ const SessionManager: React.FC<SessionManagerProps> = ({
     setIsGenerating(false);
   };
 
-  const handleSendInvites = () => {
-    // In a real app, this would trigger the backend to email.
-    // Here we just mark the "flow" as started.
-    resetAllStatuses();
-    setInvitesSent(true);
-    alert(`Invites "sent" to ${players.length} players!`);
+  const handleSendInvites = async () => {
+    if (!config.inviteMessage) {
+      alert('Please generate or write an invite message first.');
+      return;
+    }
+
+    // Prompt admin for their secret to authorize bulk email sending
+    const adminSecret = prompt('Enter admin secret to authorize sending emails:');
+    if (!adminSecret) return;
+
+    setIsSendingEmails(true);
+    setSendResult(null);
+
+    const recipients = players.map((p) => ({ email: p.email, name: p.name }));
+
+    try {
+      const res = await fetch('/.netlify/functions/send-weekly-announcement', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          secret: adminSecret,
+          sessionDate: config.date,
+          sessionTime: config.time,
+          location: config.location,
+          maxPlayers: config.maxPlayers,
+          inviteMessage: config.inviteMessage,
+          recipients,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok || res.status === 207) {
+        resetAllStatuses();
+        setInvitesSent(true);
+        const msg = data.errors?.length
+          ? `⚠️ Sent ${data.totalSent}/${data.totalRecipients} emails (some failed)`
+          : `✅ Successfully sent to ${data.totalSent} players!`;
+        setSendResult({ success: !data.errors?.length, message: msg });
+      } else if (res.status === 403) {
+        setSendResult({ success: false, message: '❌ Invalid admin secret. Emails not sent.' });
+      } else {
+        setSendResult({ success: false, message: `❌ Failed: ${data.error || 'Unknown error'}` });
+      }
+    } catch (err) {
+      console.error('Send failed:', err);
+      setSendResult({ success: false, message: '❌ Network error. Could not reach the server.' });
+    } finally {
+      setIsSendingEmails(false);
+    }
   };
 
   const pendingCount = players.filter(p => p.status === RsvpStatus.PENDING).length;
@@ -73,38 +119,38 @@ const SessionManager: React.FC<SessionManagerProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1">Date</label>
-              <input 
-                type="date" 
+              <input
+                type="date"
                 className="w-full border border-slate-300 rounded-md p-2 text-sm"
                 value={config.date}
-                onChange={e => setConfig({...config, date: e.target.value})}
+                onChange={e => setConfig({ ...config, date: e.target.value })}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1">Time</label>
-              <input 
-                type="time" 
+              <input
+                type="time"
                 className="w-full border border-slate-300 rounded-md p-2 text-sm"
                 value={config.time}
-                onChange={e => setConfig({...config, time: e.target.value})}
+                onChange={e => setConfig({ ...config, time: e.target.value })}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1">Location</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 className="w-full border border-slate-300 rounded-md p-2 text-sm"
                 value={config.location}
-                onChange={e => setConfig({...config, location: e.target.value})}
+                onChange={e => setConfig({ ...config, location: e.target.value })}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1">Max Spots</label>
-              <input 
-                type="number" 
+              <input
+                type="number"
                 className="w-full border border-slate-300 rounded-md p-2 text-sm"
                 value={config.maxPlayers}
-                onChange={e => setConfig({...config, maxPlayers: parseInt(e.target.value)})}
+                onChange={e => setConfig({ ...config, maxPlayers: parseInt(e.target.value) })}
               />
             </div>
           </div>
@@ -116,7 +162,7 @@ const SessionManager: React.FC<SessionManagerProps> = ({
               <Wand2 className="w-5 h-5 text-purple-500" />
               AI Invite Generator
             </h2>
-            <button 
+            <button
               onClick={handleGenerateEmail}
               disabled={isGenerating}
               className="text-sm bg-purple-50 text-purple-700 px-3 py-1 rounded-full hover:bg-purple-100 disabled:opacity-50 transition-colors"
@@ -124,20 +170,38 @@ const SessionManager: React.FC<SessionManagerProps> = ({
               {isGenerating ? 'Drafting...' : 'Generate New Draft'}
             </button>
           </div>
-          <textarea 
+          <textarea
             className="w-full h-48 border border-slate-300 rounded-md p-3 text-sm font-mono bg-slate-50 focus:bg-white transition-colors focus:ring-2 focus:ring-purple-500 outline-none"
             value={config.inviteMessage}
-            onChange={e => setConfig({...config, inviteMessage: e.target.value})}
+            onChange={e => setConfig({ ...config, inviteMessage: e.target.value })}
             placeholder="Click generate to create a hype email using Gemini AI..."
           />
-          <div className="mt-4">
-             <button 
-                onClick={handleSendInvites}
-                className="w-full bg-slate-900 hover:bg-slate-800 text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg"
-             >
-                <Send className="w-4 h-4" />
-                Send Bulk Invites
-             </button>
+          <div className="mt-4 space-y-3">
+            <button
+              onClick={handleSendInvites}
+              disabled={isSendingEmails}
+              className="w-full bg-slate-900 hover:bg-slate-800 disabled:bg-slate-500 disabled:cursor-not-allowed text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg"
+            >
+              {isSendingEmails ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Sending to {players.length} players...
+                </>
+              ) : (
+                <>
+                  <Mail className="w-4 h-4" />
+                  Send Bulk Invites ({players.length} players)
+                </>
+              )}
+            </button>
+            {sendResult && (
+              <div className={`p-3 rounded-lg text-sm font-medium ${sendResult.success
+                  ? 'bg-green-50 text-green-700 border border-green-200'
+                  : 'bg-red-50 text-red-700 border border-red-200'
+                }`}>
+                {sendResult.message}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -145,73 +209,72 @@ const SessionManager: React.FC<SessionManagerProps> = ({
       {/* RSVP Management Column */}
       <div className="space-y-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-            <h2 className="text-lg font-bold text-slate-800 mb-6">RSVP Tracker</h2>
-            
-            <div className="grid grid-cols-3 gap-4 mb-8">
-                <div className="bg-green-50 p-4 rounded-lg text-center border border-green-100">
-                    <div className="text-2xl font-bold text-green-600">{acceptedCount}</div>
-                    <div className="text-xs text-green-700 font-medium uppercase tracking-wide">In</div>
-                </div>
-                <div className="bg-yellow-50 p-4 rounded-lg text-center border border-yellow-100">
-                    <div className="text-2xl font-bold text-yellow-600">{pendingCount}</div>
-                    <div className="text-xs text-yellow-700 font-medium uppercase tracking-wide">Pending</div>
-                </div>
-                <div className="bg-red-50 p-4 rounded-lg text-center border border-red-100">
-                    <div className="text-2xl font-bold text-red-600">{declinedCount}</div>
-                    <div className="text-xs text-red-700 font-medium uppercase tracking-wide">Out</div>
-                </div>
-            </div>
+          <h2 className="text-lg font-bold text-slate-800 mb-6">RSVP Tracker</h2>
 
-            {/* Quick Actions (Simulation) */}
-            <div className="space-y-4">
-                <div className="flex justify-between items-center pb-2 border-b border-slate-100">
-                    <h3 className="font-semibold text-sm text-slate-600">Manual Overrides</h3>
-                    <button 
-                        onClick={finalizeNoReplies}
-                        className="text-xs text-red-500 hover:text-red-700 font-medium hover:underline"
-                    >
-                        Mark Unreplied as Declined
-                    </button>
-                </div>
-                <div className="max-h-[400px] overflow-y-auto pr-2 space-y-2">
-                    {players.map(player => (
-                        <div key={player.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                            <div>
-                                <div className="font-medium text-sm text-slate-900">{player.name}</div>
-                                <div className={`text-xs font-semibold ${
-                                    player.status === RsvpStatus.ACCEPTED ? 'text-green-600' :
-                                    player.status === RsvpStatus.DECLINED ? 'text-red-600' :
-                                    player.status === RsvpStatus.NO_REPLY ? 'text-slate-400' :
-                                    'text-yellow-600'
-                                }`}>{player.status.replace('_', ' ')}</div>
-                            </div>
-                            <div className="flex gap-1">
-                                <button 
-                                    onClick={() => updatePlayerStatus(player.id, RsvpStatus.ACCEPTED)}
-                                    className={`p-1.5 rounded-md transition-colors ${player.status === RsvpStatus.ACCEPTED ? 'bg-green-100 text-green-600' : 'text-slate-400 hover:text-green-600 hover:bg-green-50'}`}
-                                    title="Mark Accepted"
-                                >
-                                    <CheckCircle className="w-5 h-5" />
-                                </button>
-                                <button 
-                                    onClick={() => updatePlayerStatus(player.id, RsvpStatus.DECLINED)}
-                                    className={`p-1.5 rounded-md transition-colors ${player.status === RsvpStatus.DECLINED ? 'bg-red-100 text-red-600' : 'text-slate-400 hover:text-red-600 hover:bg-red-50'}`}
-                                    title="Mark Declined"
-                                >
-                                    <XCircle className="w-5 h-5" />
-                                </button>
-                                <button 
-                                    onClick={() => updatePlayerStatus(player.id, RsvpStatus.PENDING)}
-                                    className={`p-1.5 rounded-md transition-colors ${player.status === RsvpStatus.PENDING ? 'bg-yellow-100 text-yellow-600' : 'text-slate-400 hover:text-yellow-600 hover:bg-yellow-50'}`}
-                                    title="Reset to Pending"
-                                >
-                                    <RefreshCw className="w-5 h-5" />
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
+          <div className="grid grid-cols-3 gap-4 mb-8">
+            <div className="bg-green-50 p-4 rounded-lg text-center border border-green-100">
+              <div className="text-2xl font-bold text-green-600">{acceptedCount}</div>
+              <div className="text-xs text-green-700 font-medium uppercase tracking-wide">In</div>
             </div>
+            <div className="bg-yellow-50 p-4 rounded-lg text-center border border-yellow-100">
+              <div className="text-2xl font-bold text-yellow-600">{pendingCount}</div>
+              <div className="text-xs text-yellow-700 font-medium uppercase tracking-wide">Pending</div>
+            </div>
+            <div className="bg-red-50 p-4 rounded-lg text-center border border-red-100">
+              <div className="text-2xl font-bold text-red-600">{declinedCount}</div>
+              <div className="text-xs text-red-700 font-medium uppercase tracking-wide">Out</div>
+            </div>
+          </div>
+
+          {/* Quick Actions (Simulation) */}
+          <div className="space-y-4">
+            <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+              <h3 className="font-semibold text-sm text-slate-600">Manual Overrides</h3>
+              <button
+                onClick={finalizeNoReplies}
+                className="text-xs text-red-500 hover:text-red-700 font-medium hover:underline"
+              >
+                Mark Unreplied as Declined
+              </button>
+            </div>
+            <div className="max-h-[400px] overflow-y-auto pr-2 space-y-2">
+              {players.map(player => (
+                <div key={player.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                  <div>
+                    <div className="font-medium text-sm text-slate-900">{player.name}</div>
+                    <div className={`text-xs font-semibold ${player.status === RsvpStatus.ACCEPTED ? 'text-green-600' :
+                        player.status === RsvpStatus.DECLINED ? 'text-red-600' :
+                          player.status === RsvpStatus.NO_REPLY ? 'text-slate-400' :
+                            'text-yellow-600'
+                      }`}>{player.status.replace('_', ' ')}</div>
+                  </div>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => updatePlayerStatus(player.id, RsvpStatus.ACCEPTED)}
+                      className={`p-1.5 rounded-md transition-colors ${player.status === RsvpStatus.ACCEPTED ? 'bg-green-100 text-green-600' : 'text-slate-400 hover:text-green-600 hover:bg-green-50'}`}
+                      title="Mark Accepted"
+                    >
+                      <CheckCircle className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => updatePlayerStatus(player.id, RsvpStatus.DECLINED)}
+                      className={`p-1.5 rounded-md transition-colors ${player.status === RsvpStatus.DECLINED ? 'bg-red-100 text-red-600' : 'text-slate-400 hover:text-red-600 hover:bg-red-50'}`}
+                      title="Mark Declined"
+                    >
+                      <XCircle className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => updatePlayerStatus(player.id, RsvpStatus.PENDING)}
+                      className={`p-1.5 rounded-md transition-colors ${player.status === RsvpStatus.PENDING ? 'bg-yellow-100 text-yellow-600' : 'text-slate-400 hover:text-yellow-600 hover:bg-yellow-50'}`}
+                      title="Reset to Pending"
+                    >
+                      <RefreshCw className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>

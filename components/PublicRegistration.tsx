@@ -17,9 +17,13 @@ const PublicRegistration: React.FC<PublicRegistrationProps> = ({ addPlayer }) =>
   });
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSending, setIsSending] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.email) return;
+
+    setIsSending(true);
 
     const newPlayer: Player = {
       id: crypto.randomUUID(),
@@ -33,6 +37,25 @@ const PublicRegistration: React.FC<PublicRegistrationProps> = ({ addPlayer }) =>
     };
 
     addPlayer(newPlayer);
+
+    // Send registration confirmation email via Netlify Function (fire-and-forget)
+    try {
+      await fetch('/.netlify/functions/send-registration-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          position: formData.position,
+          role: formData.role,
+        }),
+      });
+    } catch (err) {
+      console.error('Failed to send confirmation email:', err);
+      // Don't block registration if email fails
+    }
+
+    setIsSending(false);
     setSubmitted(true);
   };
 
@@ -78,7 +101,7 @@ const PublicRegistration: React.FC<PublicRegistrationProps> = ({ addPlayer }) =>
               className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
               placeholder="Wayne Gretzky"
               value={formData.name}
-              onChange={e => setFormData({...formData, name: e.target.value})}
+              onChange={e => setFormData({ ...formData, name: e.target.value })}
             />
           </div>
 
@@ -90,33 +113,33 @@ const PublicRegistration: React.FC<PublicRegistrationProps> = ({ addPlayer }) =>
               className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
               placeholder="wayne@example.com"
               value={formData.email}
-              onChange={e => setFormData({...formData, email: e.target.value})}
+              onChange={e => setFormData({ ...formData, email: e.target.value })}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Position</label>
-                <select
+              <label className="block text-sm font-medium text-slate-700 mb-2">Position</label>
+              <select
                 className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                 value={formData.position}
-                onChange={e => setFormData({...formData, position: e.target.value})}
-                >
+                onChange={e => setFormData({ ...formData, position: e.target.value })}
+              >
                 <option value="Forward">Forward</option>
                 <option value="Defense">Defense</option>
                 <option value="Goalie">Goalie</option>
-                </select>
+              </select>
             </div>
             <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Player Type</label>
-                <select
+              <label className="block text-sm font-medium text-slate-700 mb-2">Player Type</label>
+              <select
                 className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                 value={formData.role}
-                onChange={e => setFormData({...formData, role: e.target.value})}
-                >
+                onChange={e => setFormData({ ...formData, role: e.target.value })}
+              >
                 <option value="Sub">Substitute</option>
                 <option value="Regular">Regular</option>
-                </select>
+              </select>
             </div>
           </div>
 
@@ -131,7 +154,7 @@ const PublicRegistration: React.FC<PublicRegistrationProps> = ({ addPlayer }) =>
               max="10"
               className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
               value={formData.skillLevel}
-              onChange={e => setFormData({...formData, skillLevel: parseInt(e.target.value)})}
+              onChange={e => setFormData({ ...formData, skillLevel: parseInt(e.target.value) })}
             />
             <div className="flex justify-between text-xs text-slate-400 mt-1">
               <span>Beginner</span>
@@ -142,9 +165,10 @@ const PublicRegistration: React.FC<PublicRegistrationProps> = ({ addPlayer }) =>
 
           <button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+            disabled={isSending}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
           >
-            Sign Up
+            {isSending ? 'Signing Up...' : 'Sign Up'}
           </button>
         </form>
       </div>
