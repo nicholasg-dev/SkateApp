@@ -4,7 +4,7 @@ const DASHSCOPE_BASE_URL =
     process.env.DASHSCOPE_BASE_URL ||
     "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
 
-const QWEN_MODEL = process.env.QWEN_MODEL || "qwen-plus";
+const QWEN_MODEL = process.env.QWEN_MODEL || "qwen-flash";
 
 interface PlayerInput {
     name: string;

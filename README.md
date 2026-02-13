@@ -11,6 +11,10 @@ A comprehensive web application designed to manage weekly hockey drop-in session
 
 ### 📋 Roster Management
 - **Player Database**: Maintain contact information, preferred positions, skill ratings, player roles (Regular/Sub), and fee payment status.
+- **Roster Defaults**:
+  - **Max Players**: 20 skaters per session
+  - **Max Goalies**: 2 goalies per session
+  - **Location**: Skating Edge Arena
 - **Admin Controls**:
   - **Inline Editing**: Quickly update skill levels (1-10), positions (Forward, Defense, Goalie), roles (Regular, Sub), and fee status directly from the list.
   - **Privacy**: Player emails are obfuscated for non-admins.
@@ -18,12 +22,12 @@ A comprehensive web application designed to manage weekly hockey drop-in session
   - **CRUD Operations**: Add or remove players easily.
   - **Registration Link**: Copy a shareable public registration link for new players.
 
-### 🤖 AI-Powered Automation (Gemini)
-- **Smart Invites**: Generate high-energy, unique weekly email drafts using Google Gemini (`gemini-3-flash-preview` model).
+### 🤖 AI-Powered Automation (Qwen via DashScope)
+- **Smart Invites**: Generate high-energy, unique weekly email drafts using Qwen AI (`qwen-flash` model by default) through the DashScope API.
 - **Team Balancing**: Uses AI to generate fair teams ("White" vs "Dark") by analyzing the skill levels and positions of confirmed players.
 
 ### 📅 Session Management
-- **Event Configuration**: Set date, time, location, and max player capacity.
+- **Event Configuration**: Set date, time, location, max player capacity, and max goalie spots.
 - **RSVP Tracking**: Detailed lists of who is in, out, or pending.
 - **Bulk Actions**:
   - Reset all statuses for a new week.
@@ -39,7 +43,8 @@ A comprehensive web application designed to manage weekly hockey drop-in session
 ### Prerequisites
 - [Node.js](https://nodejs.org/) v20 or later.
 - A modern web browser.
-- A Google Gemini API key (for AI features).
+- A DashScope API key (for AI features) — see [Environment Variables](#environment-variables).
+- A [Resend](https://resend.com/) API key (for email sending).
 
 ### Installation & Setup
 
@@ -48,21 +53,27 @@ A comprehensive web application designed to manage weekly hockey drop-in session
     git clone <repository-url>
     cd SkateApp
     ```
+
 2.  **Environment Variables**:
-    Create a `.env` file in the project root and add your Gemini API key:
+    Create a `.env` file in the project root with the required variables (see [Environment Variables](#environment-variables) for the full list):
+    ```env
+    DASHSCOPE_API_KEY=your_dashscope_api_key_here
+    RESEND_API_KEY=re_your_resend_api_key_here
+    FROM_EMAIL=noreply@yourdomain.com
+    ADMIN_SECRET=your_secret_passphrase
     ```
-    GEMINI_API_KEY=your_api_key_here
-    ```
-    Vite will inject this as `process.env.API_KEY` and `process.env.GEMINI_API_KEY` at build time.
+
 3.  **Install Dependencies**:
     ```bash
     npm install
     ```
+
 4.  **Run the Development Server**:
     ```bash
     npm run dev
     ```
     The app will be available at `http://localhost:3000`.
+
 5.  **Build for Production**:
     ```bash
     npm run build
@@ -83,9 +94,10 @@ A comprehensive web application designed to manage weekly hockey drop-in session
 
 ### 3. Weekly Workflow
 1.  **Reset**: Go to **Invites** and click "Reset to Pending" to start a new week.
-2.  **Invite**: Generate an AI-powered email draft and send it out.
-3.  **Track**: Update statuses as players reply. Use the dashboard to monitor numbers.
-4.  **Game Day**:
+2.  **Configure**: Set the session date, time, location, max players (default: 20), and max goalies (default: 2).
+3.  **Invite**: Generate an AI-powered email draft and send it out.
+4.  **Track**: Update statuses as players reply. Use the dashboard to monitor numbers.
+5.  **Game Day**:
     - Go to **Team Balancer**.
     - Ensure all confirmed players have a skill rating.
     - Click **Generate Balanced Teams**.
@@ -96,7 +108,7 @@ A comprehensive web application designed to manage weekly hockey drop-in session
 - **Language**: TypeScript
 - **Build Tool**: Vite 6
 - **Styling**: Tailwind CSS (via CDN)
-- **AI Integration**: Google GenAI SDK (`@google/genai`)
+- **AI Integration**: Qwen via DashScope API (OpenAI-compatible endpoint)
 - **Email Service**: [Resend](https://resend.com/) (via Netlify Functions)
 - **Serverless**: Netlify Functions (esbuild bundler)
 - **Charts**: Recharts
@@ -115,9 +127,18 @@ The app sends real emails using [Resend](https://resend.com/) through Netlify se
 
 2. **Weekly Skate Announcement** (`send-weekly-announcement`)
    - Triggered by the admin from the **Invites** page → **Send Bulk Invites** button
-   - Sends personalized emails to all rostered players with session details
+   - Sends personalized emails to all rostered players with session details (date, time, location, max players, max goalies)
    - Protected by `ADMIN_SECRET` — admin is prompted before sending
    - Supports batch sending (up to 100 emails per batch)
+
+### Email Template Details
+
+Announcement emails include a session details card with:
+- 📅 Date
+- 🕐 Time
+- 📍 Location
+- 👥 Max Spots (skater cap)
+- 🥅 Goalie Spots (goalie cap)
 
 ### Netlify Functions
 
@@ -125,6 +146,8 @@ The app sends real emails using [Resend](https://resend.com/) through Netlify se
 |---|---|---|---|
 | `send-registration-email` | `/.netlify/functions/send-registration-email` | POST | None (public) |
 | `send-weekly-announcement` | `/.netlify/functions/send-weekly-announcement` | POST | `ADMIN_SECRET` |
+| `ai-generate-email` | `/.netlify/functions/ai-generate-email` | POST | None |
+| `ai-balance-teams` | `/.netlify/functions/ai-balance-teams` | POST | None |
 
 Functions are located in `netlify/functions/` and share email templates from `netlify/functions/_shared/email-templates.ts`.
 
@@ -140,14 +163,27 @@ SPA fallback redirects and security headers are pre-configured.
 
 ### Environment Variables
 
-Set the following in **Netlify Dashboard → Site Settings → Environment Variables**:
+Set the following in **Netlify Dashboard → Site configuration → Environment variables**:
 
 | Variable | Required | Description |
 |---|---|---|
-| `GEMINI_API_KEY` | Yes | Google Gemini API key (AI features) |
-| `RESEND_API_KEY` | Yes | [Resend](https://resend.com/api-keys) API key (email sending) |
+| `DASHSCOPE_API_KEY` | Yes | DashScope API key for Qwen AI features (email generation, team balancing) |
+| `RESEND_API_KEY` | Yes | [Resend](https://resend.com/api-keys) API key for email sending |
 | `FROM_EMAIL` | Yes | Verified sender address (e.g., `skate@yourdomain.com`) |
 | `ADMIN_SECRET` | Yes | Secret passphrase for authorizing bulk email sends |
+
+#### Optional Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `DASHSCOPE_BASE_URL` | `https://dashscope-intl.aliyuncs.com/compatible-mode/v1` | Override the DashScope API base URL |
+| `QWEN_MODEL` | `qwen-flash` | Override the Qwen model used for AI generation |
+
+#### DashScope / Qwen AI Setup
+
+1. Sign up at [DashScope](https://dashscope.aliyun.com/)
+2. Generate an API key from the console
+3. Add the key as `DASHSCOPE_API_KEY` in Netlify environment variables
 
 #### Resend Setup
 
@@ -158,6 +194,17 @@ Set the following in **Netlify Dashboard → Site Settings → Environment Varia
 5. Set `FROM_EMAIL` to an email on your verified domain
 
 > **Note:** Until a domain is verified, Resend allows sending from `onboarding@resend.dev` for testing.
+
+## Session Defaults
+
+The app ships with the following session defaults (configurable per session in the Invites panel):
+
+| Setting | Default Value |
+|---|---|
+| Location | Skating Edge Arena |
+| Max Players | 20 |
+| Max Goalies | 2 |
+| Time | 8:00 PM |
 
 ## Data Persistence
 
