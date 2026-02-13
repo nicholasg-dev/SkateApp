@@ -12,7 +12,7 @@ const SURFACE = "#f1f5f9";
 const BORDER = "#e2e8f0";
 
 function wrapInLayout(content: string): string {
-    return `
+  return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -35,7 +35,7 @@ function wrapInLayout(content: string): string {
 }
 
 function headerBlock(title: string, subtitle?: string): string {
-    return `
+  return `
   <tr>
     <td style="background: ${BRAND_GRADIENT}; padding: 40px 32px; text-align: center; border-radius: 12px 12px 0 0;">
       <h1 style="color: #ffffff; margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.5px;">${title}</h1>
@@ -45,7 +45,7 @@ function headerBlock(title: string, subtitle?: string): string {
 }
 
 function footerBlock(): string {
-    return `
+  return `
   <tr>
     <td style="background: ${SURFACE}; padding: 24px 32px; text-align: center; border-radius: 0 0 12px 12px; border: 1px solid ${BORDER}; border-top: none;">
       <p style="color: ${TEXT_MUTED}; font-size: 12px; margin: 0;">SkateApp — Drop-in Hockey Manager</p>
@@ -58,11 +58,11 @@ function footerBlock(): string {
  * Registration confirmation email sent when a new player signs up.
  */
 export function buildRegistrationEmail(
-    name: string,
-    position: string,
-    role: string
+  name: string,
+  position: string,
+  role: string
 ): string {
-    const content = `
+  const content = `
     ${headerBlock("🏒 Welcome to SkateApp!", "You've been added to the roster")}
     <tr>
       <td style="background: #ffffff; padding: 32px; border-left: 1px solid ${BORDER}; border-right: 1px solid ${BORDER};">
@@ -101,55 +101,55 @@ export function buildRegistrationEmail(
     </tr>
     ${footerBlock()}`;
 
-    return wrapInLayout(content);
+  return wrapInLayout(content);
 }
 
 /**
  * Weekly skate announcement email sent to all rostered players.
  */
 export function buildAnnouncementEmail(
-    playerName: string,
-    sessionDate: string,
-    sessionTime: string,
-    location: string,
-    maxPlayers: number,
-    maxGoalies: number,
-    inviteMessage: string
+  playerName: string,
+  sessionDate: string,
+  sessionTime: string,
+  location: string,
+  maxPlayers: number,
+  maxGoalies: number,
+  inviteMessage: string
 ): string {
-    // Format the date nicely if possible
-    let formattedDate = sessionDate;
-    try {
-        const d = new Date(sessionDate + "T00:00:00");
-        formattedDate = d.toLocaleDateString("en-US", {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-        });
-    } catch {
-        // keep raw string
-    }
+  // Format the date nicely if possible
+  let formattedDate = sessionDate;
+  try {
+    const d = new Date(sessionDate + "T00:00:00");
+    formattedDate = d.toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  } catch {
+    // keep raw string
+  }
 
-    // Format time
-    let formattedTime = sessionTime;
-    try {
-        const [h, m] = sessionTime.split(":");
-        const hour = parseInt(h, 10);
-        const ampm = hour >= 12 ? "PM" : "AM";
-        const display = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
-        formattedTime = `${display}:${m} ${ampm}`;
-    } catch {
-        // keep raw string
-    }
+  // Format time
+  let formattedTime = sessionTime;
+  try {
+    const [h, m] = sessionTime.split(":");
+    const hour = parseInt(h, 10);
+    const ampm = hour >= 12 ? "PM" : "AM";
+    const display = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+    formattedTime = `${display}:${m} ${ampm}`;
+  } catch {
+    // keep raw string
+  }
 
-    // Convert newlines in the invite message to <br> tags
-    const formattedMessage = inviteMessage
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/\n/g, "<br>");
+  // Convert newlines in the invite message to <br> tags
+  const formattedMessage = inviteMessage
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\n/g, "<br>");
 
-    const content = `
+  const content = `
     ${headerBlock("🏒 Sk8 This Week!", formattedDate)}
     <tr>
       <td style="background: #ffffff; padding: 32px; border-left: 1px solid ${BORDER}; border-right: 1px solid ${BORDER};">
@@ -196,6 +196,18 @@ export function buildAnnouncementEmail(
         </div>
         ` : ""}
 
+
+        <!-- CTA Button -->
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin: 0 0 32px;">
+          <tr>
+            <td align="center">
+              <a href="https://hockeytime.netlify.app/" target="_blank" style="background-color: #0f172a; color: #ffffff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+                Reserve Your Spot &rarr;
+              </a>
+            </td>
+          </tr>
+        </table>
+
         <p style="color: ${TEXT_SECONDARY}; font-size: 15px; margin: 0 0 8px; line-height: 1.6;">
           Reply to this email or reach out to the organizer to confirm your spot!
         </p>
@@ -203,5 +215,5 @@ export function buildAnnouncementEmail(
     </tr>
     ${footerBlock()}`;
 
-    return wrapInLayout(content);
+  return wrapInLayout(content);
 }

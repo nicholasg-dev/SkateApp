@@ -26,8 +26,9 @@ Details:
 - Rink: ${location}
 - Max Skater Spots: ${maxPlayers}
 - Max Goalie Spots: ${maxGoalies || 2}
+- Registration Link: https://hockeytime.netlify.app/
 
-The call to action is to reply or click the link to claim a spot.
+The call to action is to click the registration link to claim a spot.
 Keep it under 150 words.`;
 
         const response = await fetch(`${DASHSCOPE_BASE_URL}/chat/completions`, {
