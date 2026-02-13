@@ -16,11 +16,18 @@ A comprehensive web application designed to manage weekly hockey drop-in session
   - **Max Goalies**: 2 goalies per session
   - **Location**: Skating Edge Arena
 - **Admin Controls**:
-  - **Inline Editing**: Quickly update skill levels (1-10), positions (Forward, Defense, Goalie), roles (Regular, Sub), and fee status directly from the list.
-  - **Privacy**: Player emails are obfuscated for non-admins.
+  - **Inline Editing**: quickly update skill levels (1-10), positions, roles, and fee status directly from the list (Admin Only).
+  - **Privacy**: Player emails and skill ratings are hidden for non-admins.
   - **Notes**: Private admin notes for specific players.
   - **CRUD Operations**: Add or remove players easily.
   - **Registration Link**: Copy a shareable public registration link for new players.
+
+### 🔐 Role-Based Access Control
+- **Admin View**: Full access to roster, skill ratings, detailed dashboard, and session management tools.
+- **Player View**: 
+  - Simplified Dashboard showing only the "Confirmed Skaters" count.
+  - Hidden Roster and Team Balancer pages (Access Denied).
+  - Restricted Sidebar navigation.
 
 ### 🤖 AI-Powered Automation (Qwen via DashScope)
 - **Smart Invites**: Generate high-energy, unique weekly email drafts using Qwen AI (`qwen-flash` model by default) through the DashScope API.
@@ -29,9 +36,11 @@ A comprehensive web application designed to manage weekly hockey drop-in session
 ### 📅 Session Management
 - **Event Configuration**: Set date, time, location, max player capacity, and max goalie spots.
 - **RSVP Tracking**: Detailed lists of who is in, out, or pending.
-- **Bulk Actions**:
   - Reset all statuses for a new week.
   - Auto-decline players who haven't replied.
+- **Smart Selection**:
+  - **Search & Filter**: Real-time search by name or email.
+  - **Checkbox Selection**: Bulk select/deselect players to target specific groups for invites.
 
 ### 🔐 Security & Access
 - **Public Registration**: A dedicated `/register` page (via HashRouter) for new players to self-signup.
@@ -107,7 +116,7 @@ A comprehensive web application designed to manage weekly hockey drop-in session
 - **Framework**: React 19
 - **Language**: TypeScript
 - **Build Tool**: Vite 6
-- **Styling**: Tailwind CSS (via CDN)
+- **Styling**: Tailwind CSS (via CDN) with premium glassmorphic components and gradient themes.
 - **AI Integration**: Qwen via DashScope API (OpenAI-compatible endpoint)
 - **Email Service**: [Resend](https://resend.com/) (via Netlify Functions)
 - **Serverless**: Netlify Functions (esbuild bundler)
@@ -146,6 +155,7 @@ Announcement emails include a session details card with:
 |---|---|---|---|
 | `send-registration-email` | `/.netlify/functions/send-registration-email` | POST | None (public) |
 | `send-weekly-announcement` | `/.netlify/functions/send-weekly-announcement` | POST | `ADMIN_SECRET` |
+| `store-players` | `/.netlify/functions/store-players` | GET/POST | None (uses Blobs) |
 | `ai-generate-email` | `/.netlify/functions/ai-generate-email` | POST | None |
 | `ai-balance-teams` | `/.netlify/functions/ai-balance-teams` | POST | None |
 
@@ -208,4 +218,10 @@ The app ships with the following session defaults (configurable per session in t
 
 ## Data Persistence
 
-The application uses `localStorage` (`skateapp_players_v3`) to save player data in the user's browser. Clearing browser data will reset the roster to the initial hardcoded list. The app automatically migrates data from the legacy `sk8_players_v2` storage key if present.
+The application uses **Netlify Blobs** for persistent cloud storage, ensuring data remains consistent across sessions, devices, and redeployments. 
+
+- **Primary Source**: Uses the `store-players` Netlify Function to read/write JSON data to a "roster" blob store.
+- **Offline/Cache**: Falls back to `localStorage` (`skateapp_players_v3`) for immediate UI responsiveness and offline access.
+- **Synchronization**: Changes are saved to the cloud automatically with a 2-second debounce to optimize performance.
+
+> **Note**: You must enable **Netlify Blobs** in your site dashboard for persistence to work in production.

@@ -150,31 +150,62 @@ const INITIAL_PLAYERS: Player[] = RAW_PLAYERS.map(p => ({
 const App: React.FC = () => {
   const [players, setPlayers] = useState<Player[]>(INITIAL_PLAYERS);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Persistence
+  // Persistence: Load from Netlify Blobs
   useEffect(() => {
-    // Check for v3 storage to ensure we load the new schema
-    const saved = localStorage.getItem('skateapp_players_v3');
-    if (saved) {
-      setPlayers(JSON.parse(saved));
-    } else {
-      // Migration from v2 (Sk8 Manager)
-      const old = localStorage.getItem('sk8_players_v2');
-      if (old) {
-        const parsedOld = JSON.parse(old);
-        const migrated = parsedOld.map((p: any) => ({
-          ...p,
-          role: p.role || 'Regular',
-          feesPaid: p.feesPaid || false
-        }));
-        setPlayers(migrated);
+    const loadData = async () => {
+      try {
+        const res = await fetch('/.netlify/functions/store-players');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && Array.isArray(data) && data.length > 0) {
+            setPlayers(data);
+          } else {
+            // Fallback: Check local storage migration if blob is empty
+            const saved = localStorage.getItem('skateapp_players_v3');
+            if (saved) {
+              setPlayers(JSON.parse(saved));
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load roster from cloud:', error);
+        // Fallback to local storage on error
+        const saved = localStorage.getItem('skateapp_players_v3');
+        if (saved) setPlayers(JSON.parse(saved));
+      } finally {
+        setIsLoading(false);
       }
-    }
+    };
+
+    loadData();
   }, []);
 
+  // Persistence: Save to Netlify Blobs (Debounced)
   useEffect(() => {
+    if (isLoading) return;
+
+    // Save to local storage immediately for UI responsiveness
     localStorage.setItem('skateapp_players_v3', JSON.stringify(players));
-  }, [players]);
+
+    // Debounce save to cloud to prevent flooding
+    const timeoutId = setTimeout(async () => {
+      try {
+        await fetch('/.netlify/functions/store-players', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(players)
+        });
+        console.log('Roster saved to cloud');
+      } catch (error) {
+        console.error('Failed to save roster to cloud:', error);
+      }
+    }, 2000);
+
+    return () => clearTimeout(timeoutId);
+  }, [players, isLoading]);
 
   const updatePlayerStatus = (playerId: string, status: RsvpStatus) => {
     setPlayers(prev => prev.map(p => p.id === playerId ? { ...p, status } : p));
