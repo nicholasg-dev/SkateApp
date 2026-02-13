@@ -271,113 +271,117 @@ const RsvpPage: React.FC = () => {
 
     // ──────────────── Ready / Submitting — Main RSVP UI ────────────────
 
-    return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
-            <div className="max-w-lg w-full">
-                {/* Header */}
-                <div className="text-center mb-8">
-                    <div className="flex items-center justify-center gap-2 mb-2">
-                        <Activity className="text-blue-400 w-7 h-7" />
-                        <span className="text-xl font-bold text-white tracking-wider">SkateApp</span>
-                    </div>
-                    <p className="text-slate-500 text-sm">Drop-in Hockey Manager</p>
-                </div>
-
-                <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
-                    {/* Title Section */}
-                    <div className="bg-gradient-to-r from-blue-600/30 to-indigo-600/30 p-8 text-center border-b border-white/5">
-                        <h1 className="text-3xl font-bold text-white mb-2">🏒 You're Invited!</h1>
-                        <p className="text-slate-300 text-sm">
-                            Hey <span className="font-semibold text-white">{player?.name || 'there'}</span>, are you skating this week?
-                        </p>
+    if (state === 'ready' || state === 'submitting') {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
+                <div className="max-w-md w-full">
+                    {/* Header */}
+                    <div className="text-center mb-8">
+                        <div className="flex items-center justify-center gap-2 mb-2">
+                            <Activity className="text-blue-400 w-7 h-7" />
+                            <span className="text-xl font-bold text-white tracking-wider">SkateApp</span>
+                        </div>
+                        <p className="text-slate-500 text-sm">Drop-in Hockey Manager</p>
                     </div>
 
-                    {/* Session Details */}
-                    {(formattedDate || formattedTime || location) && (
-                        <div className="px-8 py-6 border-b border-white/5">
-                            <h3 className="text-xs uppercase tracking-widest text-slate-500 font-semibold mb-4">Session Details</h3>
-                            <div className="space-y-4">
-                                {formattedDate && (
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                                            <Calendar className="w-5 h-5 text-blue-400" />
+                    <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
+                        {/* Title Section */}
+                        <div className="bg-gradient-to-r from-blue-600/30 to-indigo-600/30 p-8 text-center border-b border-white/5">
+                            <h1 className="text-3xl font-bold text-white mb-2">🏒 You're Invited!</h1>
+                            <p className="text-slate-300 text-sm">
+                                Hey <span className="font-semibold text-white">{player?.name || 'there'}</span>, are you skating this week?
+                            </p>
+                        </div>
+
+                        {/* Session Details */}
+                        {(formattedDate || formattedTime || location) && (
+                            <div className="px-8 py-6 border-b border-white/5">
+                                <h3 className="text-xs uppercase tracking-widest text-slate-500 font-semibold mb-4">Session Details</h3>
+                                <div className="space-y-4">
+                                    {formattedDate && (
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                <Calendar className="w-5 h-5 text-blue-400" />
+                                            </div>
+                                            <div>
+                                                <div className="text-white font-medium">{formattedDate}</div>
+                                                <div className="text-slate-500 text-xs">Date</div>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <div className="text-white font-medium">{formattedDate}</div>
-                                            <div className="text-slate-500 text-xs">Date</div>
+                                    )}
+                                    {formattedTime && (
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 bg-purple-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                <span className="text-lg">🕐</span>
+                                            </div>
+                                            <div>
+                                                <div className="text-white font-medium">{formattedTime}</div>
+                                                <div className="text-slate-500 text-xs">Puck Drop</div>
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
-                                {formattedTime && (
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 bg-purple-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                                            <span className="text-lg">🕐</span>
+                                    )}
+                                    {location && (
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 bg-emerald-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                <MapPin className="w-5 h-5 text-emerald-400" />
+                                            </div>
+                                            <div>
+                                                <div className="text-white font-medium">{location}</div>
+                                                <div className="text-slate-500 text-xs">Location</div>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <div className="text-white font-medium">{formattedTime}</div>
-                                            <div className="text-slate-500 text-xs">Puck Drop</div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* RSVP Buttons */}
+                        <div className="p-8">
+                            <h3 className="text-xs uppercase tracking-widest text-slate-500 font-semibold mb-6 text-center">Your Response</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <button
+                                    onClick={() => handleRsvp('ACCEPTED')}
+                                    disabled={state === 'submitting'}
+                                    className="group relative bg-gradient-to-br from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 disabled:from-emerald-800 disabled:to-emerald-900 disabled:cursor-not-allowed text-white font-bold py-5 px-6 rounded-xl transition-all shadow-lg hover:shadow-emerald-500/25 hover:-translate-y-0.5 active:translate-y-0"
+                                >
+                                    {state === 'submitting' && chosenStatus === 'ACCEPTED' ? (
+                                        <Loader2 className="w-6 h-6 animate-spin mx-auto" />
+                                    ) : (
+                                        <div className="flex flex-col items-center gap-2">
+                                            <CheckCircle className="w-8 h-8 group-hover:scale-110 transition-transform" />
+                                            <span className="text-lg">I'm In!</span>
                                         </div>
-                                    </div>
-                                )}
-                                {location && (
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 bg-emerald-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                                            <MapPin className="w-5 h-5 text-emerald-400" />
+                                    )}
+                                </button>
+
+                                <button
+                                    onClick={() => handleRsvp('DECLINED')}
+                                    disabled={state === 'submitting'}
+                                    className="group relative bg-gradient-to-br from-slate-600 to-slate-700 hover:from-red-600 hover:to-red-700 disabled:from-slate-800 disabled:to-slate-900 disabled:cursor-not-allowed text-white font-bold py-5 px-6 rounded-xl transition-all shadow-lg hover:shadow-red-500/25 hover:-translate-y-0.5 active:translate-y-0"
+                                >
+                                    {state === 'submitting' && chosenStatus === 'DECLINED' ? (
+                                        <Loader2 className="w-6 h-6 animate-spin mx-auto" />
+                                    ) : (
+                                        <div className="flex flex-col items-center gap-2">
+                                            <XCircle className="w-8 h-8 group-hover:scale-110 transition-transform" />
+                                            <span className="text-lg">Can't Make It</span>
                                         </div>
-                                        <div>
-                                            <div className="text-white font-medium">{location}</div>
-                                            <div className="text-slate-500 text-xs">Location</div>
-                                        </div>
-                                    </div>
-                                )}
+                                    )}
+                                </button>
                             </div>
                         </div>
-                    )}
-
-                    {/* RSVP Buttons */}
-                    <div className="p-8">
-                        <h3 className="text-xs uppercase tracking-widest text-slate-500 font-semibold mb-6 text-center">Your Response</h3>
-                        <div className="grid grid-cols-2 gap-4">
-                            <button
-                                onClick={() => handleRsvp('ACCEPTED')}
-                                disabled={state === 'submitting'}
-                                className="group relative bg-gradient-to-br from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 disabled:from-emerald-800 disabled:to-emerald-900 disabled:cursor-not-allowed text-white font-bold py-5 px-6 rounded-xl transition-all shadow-lg hover:shadow-emerald-500/25 hover:-translate-y-0.5 active:translate-y-0"
-                            >
-                                {state === 'submitting' && chosenStatus === 'ACCEPTED' ? (
-                                    <Loader2 className="w-6 h-6 animate-spin mx-auto" />
-                                ) : (
-                                    <div className="flex flex-col items-center gap-2">
-                                        <CheckCircle className="w-8 h-8 group-hover:scale-110 transition-transform" />
-                                        <span className="text-lg">I'm In!</span>
-                                    </div>
-                                )}
-                            </button>
-
-                            <button
-                                onClick={() => handleRsvp('DECLINED')}
-                                disabled={state === 'submitting'}
-                                className="group relative bg-gradient-to-br from-slate-600 to-slate-700 hover:from-red-600 hover:to-red-700 disabled:from-slate-800 disabled:to-slate-900 disabled:cursor-not-allowed text-white font-bold py-5 px-6 rounded-xl transition-all shadow-lg hover:shadow-red-500/25 hover:-translate-y-0.5 active:translate-y-0"
-                            >
-                                {state === 'submitting' && chosenStatus === 'DECLINED' ? (
-                                    <Loader2 className="w-6 h-6 animate-spin mx-auto" />
-                                ) : (
-                                    <div className="flex flex-col items-center gap-2">
-                                        <XCircle className="w-8 h-8 group-hover:scale-110 transition-transform" />
-                                        <span className="text-lg">Can't Make It</span>
-                                    </div>
-                                )}
-                            </button>
-                        </div>
                     </div>
-                </div>
 
-                {/* Footer */}
-                <p className="text-center text-slate-600 text-xs mt-6">
-                    Responding as <span className="text-slate-400">{email}</span>
-                </p>
+                    {/* Footer */}
+                    <p className="text-center text-slate-600 text-xs mt-6">
+                        Responding as <span className="text-slate-400">{email}</span>
+                    </p>
+                </div>
             </div>
-        </div>
-    );
+        );
+    }
+
+    return null;
 };
 
 export default RsvpPage;

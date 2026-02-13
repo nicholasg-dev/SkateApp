@@ -33,10 +33,12 @@ export const handler: Handler = async (event: HandlerEvent) => {
         const raw = await store.get("players", { type: "text" });
         if (!raw) {
             console.warn("Roster blob not found or empty");
+            // If store exists but is empty, try to return empty array or handle gracefully?
+            // For RSVP, if there are no players, we can't really RSVP.
             return {
-                statusCode: 500,
+                statusCode: 404, // Not Found is more appropriate if the list itself is empty
                 headers,
-                body: JSON.stringify({ error: "Roster not found" }),
+                body: JSON.stringify({ error: "Roster is empty or not initialized" }),
             };
         }
         players = JSON.parse(raw);
@@ -56,10 +58,15 @@ export const handler: Handler = async (event: HandlerEvent) => {
             hasToken: !!process.env.NETLIFY_AUTH_TOKEN,
             blobsContext: !!process.env.NETLIFY_BLOBS_CONTEXT,
         });
+
+        // Critical: If Blob store isn't configured, we can't RSVP.
         return {
-            statusCode: 500,
+            statusCode: 503,
             headers,
-            body: JSON.stringify({ error: `Failed to load roster: ${message}` }),
+            body: JSON.stringify({
+                error: "Service unavailable: Blob storage not configured. Please contact admin.",
+                details: message
+            }),
         };
     }
 
