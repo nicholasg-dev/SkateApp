@@ -208,7 +208,7 @@ const App: React.FC = () => {
             <Layout isAdmin={isAdmin} setIsAdmin={setIsAdmin}>
               <Suspense fallback={<PageLoader />}>
                 <Routes>
-                  <Route path="/" element={<Dashboard players={players} />} />
+                  <Route path="/" element={<Dashboard players={players} isAdmin={isAdmin} />} />
                   <Route path="/roster" element={<PlayerList players={players} setPlayers={setPlayers} isAdmin={isAdmin} />} />
                   <Route path="/invites" element={
                     <SessionManager
