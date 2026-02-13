@@ -22,6 +22,7 @@ export interface SessionConfig {
   time: string;
   location: string;
   maxPlayers: number;
+  maxGoalies: number;
   inviteMessage: string;
 }
 

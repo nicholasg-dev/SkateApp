@@ -113,6 +113,7 @@ export function buildAnnouncementEmail(
     sessionTime: string,
     location: string,
     maxPlayers: number,
+    maxGoalies: number,
     inviteMessage: string
 ): string {
     // Format the date nicely if possible
@@ -176,6 +177,10 @@ export function buildAnnouncementEmail(
                 <tr>
                   <td style="padding: 8px 0; color: ${TEXT_SECONDARY}; font-size: 14px; vertical-align: top;">👥 Max Spots</td>
                   <td style="padding: 8px 0; color: ${TEXT_PRIMARY}; font-size: 14px; font-weight: 600;">${maxPlayers}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: ${TEXT_SECONDARY}; font-size: 14px; vertical-align: top;">🥅 Goalie Spots</td>
+                  <td style="padding: 8px 0; color: ${TEXT_PRIMARY}; font-size: 14px; font-weight: 600;">${maxGoalies}</td>
                 </tr>
               </table>
             </td>

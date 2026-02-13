@@ -15,6 +15,7 @@ export const generateInviteEmail = async (config: SessionConfig): Promise<string
                 time: config.time,
                 location: config.location,
                 maxPlayers: config.maxPlayers,
+                maxGoalies: config.maxGoalies,
             }),
         });
 

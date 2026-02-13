@@ -15,7 +15,7 @@ export default async (req: Request, _context: Context) => {
     }
 
     try {
-        const { date, time, location, maxPlayers } = await req.json();
+        const { date, time, location, maxPlayers, maxGoalies } = await req.json();
 
         const prompt = `Write a high-energy, fun, and concise email invitation for a hockey drop-in scrimmage.
 Use hockey slang (chirps, celly, dangles) but keep it readable.
@@ -24,7 +24,8 @@ Details:
 - Date: ${date}
 - Time: ${time}
 - Rink: ${location}
-- Max Spots: ${maxPlayers}
+- Max Skater Spots: ${maxPlayers}
+- Max Goalie Spots: ${maxGoalies || 2}
 
 The call to action is to reply or click the link to claim a spot.
 Keep it under 150 words.`;

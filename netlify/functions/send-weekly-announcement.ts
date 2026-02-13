@@ -13,6 +13,7 @@ interface AnnouncementPayload {
     sessionTime?: string;
     location?: string;
     maxPlayers?: number;
+    maxGoalies?: number;
     inviteMessage?: string;
     recipients?: Recipient[];
 }
@@ -51,7 +52,7 @@ const handler: Handler = async (event: HandlerEvent) => {
         };
     }
 
-    const { secret, sessionDate, sessionTime, location, maxPlayers, inviteMessage, recipients } = payload;
+    const { secret, sessionDate, sessionTime, location, maxPlayers, maxGoalies, inviteMessage, recipients } = payload;
 
     // Authenticate — only admins can send bulk emails
     if (secret !== process.env.ADMIN_SECRET) {
@@ -92,7 +93,8 @@ const handler: Handler = async (event: HandlerEvent) => {
                 sessionDate,
                 sessionTime,
                 location,
-                maxPlayers || 22,
+                maxPlayers || 20,
+                maxGoalies || 2,
                 inviteMessage || ""
             ),
         }));

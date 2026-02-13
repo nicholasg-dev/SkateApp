@@ -21,8 +21,9 @@ const SessionManager: React.FC<SessionManagerProps> = ({
   const [config, setConfig] = useState<SessionConfig>({
     date: '2024-11-25',
     time: '20:00',
-    location: 'Downtown Ice Arena',
-    maxPlayers: 22,
+    location: 'Skating Edge Arena',
+    maxPlayers: 20,
+    maxGoalies: 2,
     inviteMessage: ''
   });
 
@@ -76,6 +77,7 @@ const SessionManager: React.FC<SessionManagerProps> = ({
           sessionTime: config.time,
           location: config.location,
           maxPlayers: config.maxPlayers,
+          maxGoalies: config.maxGoalies,
           inviteMessage: config.inviteMessage,
           recipients,
         }),
@@ -145,12 +147,21 @@ const SessionManager: React.FC<SessionManagerProps> = ({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-600 mb-1">Max Spots</label>
+              <label className="block text-sm font-medium text-slate-600 mb-1">Max Players</label>
               <input
                 type="number"
                 className="w-full border border-slate-300 rounded-md p-2 text-sm"
                 value={config.maxPlayers}
                 onChange={e => setConfig({ ...config, maxPlayers: parseInt(e.target.value) })}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1">Max Goalies</label>
+              <input
+                type="number"
+                className="w-full border border-slate-300 rounded-md p-2 text-sm"
+                value={config.maxGoalies}
+                onChange={e => setConfig({ ...config, maxGoalies: parseInt(e.target.value) })}
               />
             </div>
           </div>
@@ -174,7 +185,7 @@ const SessionManager: React.FC<SessionManagerProps> = ({
             className="w-full h-48 border border-slate-300 rounded-md p-3 text-sm font-mono bg-slate-50 focus:bg-white transition-colors focus:ring-2 focus:ring-purple-500 outline-none"
             value={config.inviteMessage}
             onChange={e => setConfig({ ...config, inviteMessage: e.target.value })}
-            placeholder="Click generate to create a hype email using Gemini AI..."
+            placeholder="Click generate to create a hype email using AI..."
           />
           <div className="mt-4 space-y-3">
             <button
