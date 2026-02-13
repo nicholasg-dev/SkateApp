@@ -123,59 +123,64 @@ const SEED_DATA = [
 }));
 
 export const handler: Handler = async (event, context) => {
-    try {
-        // Use 'roster' store to persist player data
-        const store = getStore("roster");
-        if (event.httpMethod === "GET") {
-            let data = await store.get("players", { type: "json" });
+    const headers = {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+    };
 
-            // Auto-seed if the blob is empty (Initial Migration)
-            if (!data || (Array.isArray(data) && data.length === 0)) {
-                console.log("Blob is empty, seeding with initial data...");
-                await store.setJSON("players", SEED_DATA);
-                data = SEED_DATA;
+    if (event.httpMethod === "GET") {
+        try {
+            const store = getStore("roster");
+
+            // Request as text so JSON.parse works (default returns ArrayBuffer)
+            const raw = await store.get("players", { type: "text" });
+
+            if (raw) {
+                const data = JSON.parse(raw);
+                if (Array.isArray(data) && data.length > 0) {
+                    console.log(`Loaded ${data.length} players from blob`);
+                    return { statusCode: 200, headers, body: JSON.stringify(data) };
+                }
             }
 
-            return {
-                statusCode: 200,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data),
-            };
-        }
-
-        if (event.httpMethod === "POST") {
-            // Basic security: require a valid JSON body
-            if (!event.body) {
-                return {
-                    statusCode: 400,
-                    body: JSON.stringify({ error: "Missing body" }),
-                };
+            // Blob is empty or missing — seed it
+            console.log("Blob is empty, seeding with initial data...");
+            try {
+                await store.set("players", JSON.stringify(SEED_DATA));
+                console.log("Seed data written to blob successfully");
+            } catch (seedErr: any) {
+                console.error("Failed to write seed data to blob:", seedErr.message);
+                // Still return seed data even if write failed
             }
 
-            const players = JSON.parse(event.body);
+            return { statusCode: 200, headers, body: JSON.stringify(SEED_DATA) };
 
-            // Save to blob store
-            await store.setJSON("players", players);
-
-            return {
-                statusCode: 200,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ success: true }),
-            };
+        } catch (error: any) {
+            // Blob entirely unavailable — gracefully return seed data anyway
+            console.error("Blob GET failed, returning seed data as fallback:", error.message);
+            return { statusCode: 200, headers, body: JSON.stringify(SEED_DATA) };
         }
-
-        return {
-            statusCode: 405,
-            body: JSON.stringify({ error: "Method Not Allowed" }),
-        };
-    } catch (error: any) {
-        console.error("Blob operation failed:", error);
-        return {
-            statusCode: 500,
-            body: JSON.stringify({
-                error: `Blob Operation Failed: ${error.message || 'Unknown Error'}`,
-                details: "Make sure Netlify Blobs is enabled in your Site Settings on the Netlify Dashboard."
-            }),
-        };
     }
+
+    if (event.httpMethod === "POST") {
+        if (!event.body) {
+            return { statusCode: 400, headers, body: JSON.stringify({ error: "Missing body" }) };
+        }
+
+        try {
+            const store = getStore("roster");
+            const players = JSON.parse(event.body);
+            await store.set("players", JSON.stringify(players));
+            console.log(`Saved ${players.length} players to blob`);
+            return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
+        } catch (error: any) {
+            console.error("Blob POST failed:", error.message);
+            return {
+                statusCode: 500, headers,
+                body: JSON.stringify({ error: `Save failed: ${error.message}` }),
+            };
+        }
+    }
+
+    return { statusCode: 405, headers, body: JSON.stringify({ error: "Method Not Allowed" }) };
 };

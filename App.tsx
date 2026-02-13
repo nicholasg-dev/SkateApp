@@ -30,30 +30,49 @@ const App: React.FC = () => {
   const [players, setPlayers] = useState<Player[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const hasLoaded = React.useRef(false);
 
-  // Persistence
   // Persistence: Load from Netlify Blobs
   useEffect(() => {
     const loadData = async () => {
       try {
         const res = await fetch('/.netlify/functions/store-players');
+        console.log('Store-players response:', res.status, res.headers.get('content-type'));
         if (res.ok) {
+          const contentType = res.headers.get('content-type') || '';
+          if (!contentType.includes('application/json')) {
+            console.error('Expected JSON but got:', contentType);
+            throw new Error('Non-JSON response from store-players');
+          }
           const data = await res.json();
           if (data && Array.isArray(data) && data.length > 0) {
             setPlayers(data);
+            hasLoaded.current = true;
           } else {
             // Fallback: Check local storage migration if blob is empty
             const saved = localStorage.getItem('skateapp_players_v3');
             if (saved) {
-              setPlayers(JSON.parse(saved));
+              const parsed = JSON.parse(saved);
+              if (parsed.length > 0) {
+                setPlayers(parsed);
+                hasLoaded.current = true;
+              }
             }
           }
+        } else {
+          console.error('Store-players returned:', res.status, await res.text());
         }
       } catch (error) {
         console.error('Failed to load roster from cloud:', error);
         // Fallback to local storage on error
         const saved = localStorage.getItem('skateapp_players_v3');
-        if (saved) setPlayers(JSON.parse(saved));
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.length > 0) {
+            setPlayers(parsed);
+            hasLoaded.current = true;
+          }
+        }
       } finally {
         setIsLoading(false);
       }
@@ -64,7 +83,10 @@ const App: React.FC = () => {
 
   // Persistence: Save to Netlify Blobs (Debounced)
   useEffect(() => {
-    if (isLoading) return;
+    // Don't save while loading or before first successful load
+    if (isLoading || !hasLoaded.current) return;
+    // Never save an empty array — protects against accidental wipe
+    if (players.length === 0) return;
 
     // Save to local storage immediately for UI responsiveness
     localStorage.setItem('skateapp_players_v3', JSON.stringify(players));
