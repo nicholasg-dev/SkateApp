@@ -9,6 +9,7 @@ const PlayerList = React.lazy(() => import('./components/PlayerList'));
 const SessionManager = React.lazy(() => import('./components/SessionManager'));
 const TeamBalancer = React.lazy(() => import('./components/TeamBalancer'));
 const PublicRegistration = React.lazy(() => import('./components/PublicRegistration'));
+const RsvpPage = React.lazy(() => import('./components/RsvpPage'));
 
 // Loading fallback shown while chunks are downloading
 const PageLoader: React.FC = () => (
@@ -132,8 +133,9 @@ const App: React.FC = () => {
     <HashRouter>
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          {/* Public Registration Route (No Sidebar) */}
+          {/* Public Routes (No Sidebar) */}
           <Route path="/register" element={<PublicRegistration addPlayer={addNewPlayer} />} />
+          <Route path="/rsvp" element={<RsvpPage />} />
 
           {/* Protected/Dashboard Routes (With Sidebar) */}
           <Route path="/*" element={

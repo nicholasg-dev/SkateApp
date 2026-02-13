@@ -114,7 +114,8 @@ export function buildAnnouncementEmail(
   location: string,
   maxPlayers: number,
   maxGoalies: number,
-  inviteMessage: string
+  inviteMessage: string,
+  playerEmail: string = ""
 ): string {
   // Format the date nicely if possible
   let formattedDate = sessionDate;
@@ -198,19 +199,22 @@ export function buildAnnouncementEmail(
         ` : ""}
 
 
-        <!-- CTA Button -->
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin: 0 0 32px;">
+        <!-- RSVP Buttons -->
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin: 0 0 24px;">
           <tr>
             <td align="center">
-              <a href="https://hockeytime.netlify.app/" target="_blank" style="background-color: #0f172a; color: #ffffff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
-                Reserve Your Spot &rarr;
+              <a href="https://hockeytime.netlify.app/#/rsvp?email=${encodeURIComponent(playerEmail)}&date=${encodeURIComponent(sessionDate)}&time=${encodeURIComponent(sessionTime)}&location=${encodeURIComponent(location)}" target="_blank" style="background-color: #059669; color: #ffffff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); margin-right: 12px;">
+                ✅ I'm In!
+              </a>
+              <a href="https://hockeytime.netlify.app/#/rsvp?email=${encodeURIComponent(playerEmail)}&date=${encodeURIComponent(sessionDate)}&time=${encodeURIComponent(sessionTime)}&location=${encodeURIComponent(location)}" target="_blank" style="background-color: #64748b; color: #ffffff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+                ❌ Can't Make It
               </a>
             </td>
           </tr>
         </table>
 
-        <p style="color: ${TEXT_SECONDARY}; font-size: 15px; margin: 0 0 8px; line-height: 1.6;">
-          Reply to this email or reach out to the organizer to confirm your spot!
+        <p style="color: ${TEXT_SECONDARY}; font-size: 15px; margin: 0 0 8px; line-height: 1.6; text-align: center;">
+          Click a button above to RSVP — it only takes a second!
         </p>
       </td>
     </tr>

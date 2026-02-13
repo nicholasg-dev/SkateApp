@@ -95,7 +95,8 @@ const handler: Handler = async (event: HandlerEvent) => {
                 location,
                 maxPlayers || 20,
                 maxGoalies || 2,
-                inviteMessage || ""
+                inviteMessage || "",
+                r.email
             ),
         }));
 
