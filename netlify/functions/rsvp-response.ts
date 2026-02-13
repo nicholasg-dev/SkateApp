@@ -25,13 +25,14 @@ export const handler: Handler = async (event: HandlerEvent) => {
         return { statusCode: 204, headers, body: "" };
     }
 
-    const store = getStore("roster");
-
     // Load players from blob
     let players: any[];
+    let store: any;
     try {
+        store = getStore({ name: "roster", consistency: "strong" });
         const raw = await store.get("players", { type: "text" });
         if (!raw) {
+            console.warn("Roster blob not found or empty");
             return {
                 statusCode: 500,
                 headers,
@@ -40,6 +41,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
         }
         players = JSON.parse(raw);
         if (!Array.isArray(players)) {
+            console.error("Invalid roster data format");
             return {
                 statusCode: 500,
                 headers,
@@ -48,11 +50,16 @@ export const handler: Handler = async (event: HandlerEvent) => {
         }
     } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Unknown error";
-        console.error("Failed to load roster:", message);
+        console.error("Failed to load roster (Blob Store error):", message);
+        console.error("Environment Context:", {
+            hasSiteId: !!process.env.NETLIFY_SITE_ID,
+            hasToken: !!process.env.NETLIFY_AUTH_TOKEN,
+            blobsContext: !!process.env.NETLIFY_BLOBS_CONTEXT,
+        });
         return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({ error: "Failed to load roster" }),
+            body: JSON.stringify({ error: `Failed to load roster: ${message}` }),
         };
     }
 
