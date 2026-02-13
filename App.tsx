@@ -1,12 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
-import Dashboard from './components/Dashboard';
-import PlayerList from './components/PlayerList';
-import SessionManager from './components/SessionManager';
-import TeamBalancer from './components/TeamBalancer';
-import PublicRegistration from './components/PublicRegistration';
 import { Player, RsvpStatus } from './types';
+
+// Lazy-load route components for code-splitting
+const Dashboard = React.lazy(() => import('./components/Dashboard'));
+const PlayerList = React.lazy(() => import('./components/PlayerList'));
+const SessionManager = React.lazy(() => import('./components/SessionManager'));
+const TeamBalancer = React.lazy(() => import('./components/TeamBalancer'));
+const PublicRegistration = React.lazy(() => import('./components/PublicRegistration'));
+
+// Loading fallback shown while chunks are downloading
+const PageLoader: React.FC = () => (
+  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
+    <div style={{
+      width: 40, height: 40,
+      border: '4px solid #e2e8f0',
+      borderTop: '4px solid #3b82f6',
+      borderRadius: '50%',
+      animation: 'spin 0.8s linear infinite'
+    }} />
+    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+  </div>
+);
 
 // Raw data
 const RAW_PLAYERS = [
@@ -126,9 +142,9 @@ const RAW_PLAYERS = [
 
 // Hydrate initial data with new fields
 const INITIAL_PLAYERS: Player[] = RAW_PLAYERS.map(p => ({
-    ...p,
-    role: 'Regular', // Default everyone to Regular
-    feesPaid: false // Default everyone to Unpaid
+  ...p,
+  role: 'Regular', // Default everyone to Regular
+  feesPaid: false // Default everyone to Unpaid
 } as Player));
 
 const App: React.FC = () => {
@@ -142,17 +158,17 @@ const App: React.FC = () => {
     if (saved) {
       setPlayers(JSON.parse(saved));
     } else {
-        // Migration from v2 (Sk8 Manager)
-        const old = localStorage.getItem('sk8_players_v2');
-        if (old) {
-            const parsedOld = JSON.parse(old);
-            const migrated = parsedOld.map((p: any) => ({
-                ...p,
-                role: p.role || 'Regular',
-                feesPaid: p.feesPaid || false
-            }));
-            setPlayers(migrated);
-        }
+      // Migration from v2 (Sk8 Manager)
+      const old = localStorage.getItem('sk8_players_v2');
+      if (old) {
+        const parsedOld = JSON.parse(old);
+        const migrated = parsedOld.map((p: any) => ({
+          ...p,
+          role: p.role || 'Regular',
+          feesPaid: p.feesPaid || false
+        }));
+        setPlayers(migrated);
+      }
     }
   }, []);
 
@@ -169,9 +185,9 @@ const App: React.FC = () => {
   };
 
   const finalizeNoReplies = () => {
-    setPlayers(prev => prev.map(p => 
-      p.status === RsvpStatus.PENDING || p.status === RsvpStatus.NO_REPLY 
-        ? { ...p, status: RsvpStatus.DECLINED } 
+    setPlayers(prev => prev.map(p =>
+      p.status === RsvpStatus.PENDING || p.status === RsvpStatus.NO_REPLY
+        ? { ...p, status: RsvpStatus.DECLINED }
         : p
     ));
   };
@@ -182,32 +198,36 @@ const App: React.FC = () => {
 
   return (
     <HashRouter>
-      <Routes>
-        {/* Public Registration Route (No Sidebar) */}
-        <Route path="/register" element={<PublicRegistration addPlayer={addNewPlayer} />} />
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          {/* Public Registration Route (No Sidebar) */}
+          <Route path="/register" element={<PublicRegistration addPlayer={addNewPlayer} />} />
 
-        {/* Protected/Dashboard Routes (With Sidebar) */}
-        <Route path="/*" element={
-          <Layout isAdmin={isAdmin} setIsAdmin={setIsAdmin}>
-            <Routes>
-              <Route path="/" element={<Dashboard players={players} />} />
-              <Route path="/roster" element={<PlayerList players={players} setPlayers={setPlayers} isAdmin={isAdmin} />} />
-              <Route path="/invites" element={
-                <SessionManager 
-                  players={players} 
-                  updatePlayerStatus={updatePlayerStatus}
-                  resetAllStatuses={resetAllStatuses}
-                  finalizeNoReplies={finalizeNoReplies}
-                  isAdmin={isAdmin}
-                />
-              } />
-              <Route path="/teams" element={<TeamBalancer players={players} isAdmin={isAdmin} />} />
-              {/* Fallback for unknown routes inside dashboard */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Layout>
-        } />
-      </Routes>
+          {/* Protected/Dashboard Routes (With Sidebar) */}
+          <Route path="/*" element={
+            <Layout isAdmin={isAdmin} setIsAdmin={setIsAdmin}>
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  <Route path="/" element={<Dashboard players={players} />} />
+                  <Route path="/roster" element={<PlayerList players={players} setPlayers={setPlayers} isAdmin={isAdmin} />} />
+                  <Route path="/invites" element={
+                    <SessionManager
+                      players={players}
+                      updatePlayerStatus={updatePlayerStatus}
+                      resetAllStatuses={resetAllStatuses}
+                      finalizeNoReplies={finalizeNoReplies}
+                      isAdmin={isAdmin}
+                    />
+                  } />
+                  <Route path="/teams" element={<TeamBalancer players={players} isAdmin={isAdmin} />} />
+                  {/* Fallback for unknown routes inside dashboard */}
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </Suspense>
+            </Layout>
+          } />
+        </Routes>
+      </Suspense>
     </HashRouter>
   );
 };
