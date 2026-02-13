@@ -123,10 +123,9 @@ const SEED_DATA = [
 }));
 
 export const handler: Handler = async (event, context) => {
-    // Use 'roster' store to persist player data
-    const store = getStore("roster");
-
     try {
+        // Use 'roster' store to persist player data
+        const store = getStore("roster");
         if (event.httpMethod === "GET") {
             let data = await store.get("players", { type: "json" });
 
@@ -169,11 +168,14 @@ export const handler: Handler = async (event, context) => {
             statusCode: 405,
             body: JSON.stringify({ error: "Method Not Allowed" }),
         };
-    } catch (error) {
+    } catch (error: any) {
         console.error("Blob operation failed:", error);
         return {
             statusCode: 500,
-            body: JSON.stringify({ error: "Internal Server Error" }),
+            body: JSON.stringify({
+                error: `Blob Operation Failed: ${error.message || 'Unknown Error'}`,
+                details: "Make sure Netlify Blobs is enabled in your Site Settings on the Netlify Dashboard."
+            }),
         };
     }
 };
