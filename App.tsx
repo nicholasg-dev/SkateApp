@@ -37,39 +37,45 @@ const App: React.FC = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
+        console.log('[App] Loading roster from cloud (Netlify Blobs)...');
         const res = await fetch('/.netlify/functions/store-players');
-        console.log('Store-players response:', res.status, res.headers.get('content-type'));
+        console.log('[App] Store-players response:', res.status, res.headers.get('content-type'));
+
         if (res.ok) {
           const contentType = res.headers.get('content-type') || '';
           if (!contentType.includes('application/json')) {
-            console.error('Expected JSON but got:', contentType);
+            console.error('[App] Expected JSON but got:', contentType);
             throw new Error('Non-JSON response from store-players');
           }
           const data = await res.json();
           if (data && Array.isArray(data) && data.length > 0) {
+            console.log(`[App] ✓ Successfully loaded ${data.length} players from cloud`);
             setPlayers(data);
             hasLoaded.current = true;
           } else {
+            console.warn('[App] Cloud returned empty data. Checking local storage...');
             // Fallback: Check local storage migration if blob is empty
             const saved = localStorage.getItem('skateapp_players_v3');
             if (saved) {
               const parsed = JSON.parse(saved);
               if (parsed.length > 0) {
+                console.log(`[App] ✓ Loaded ${parsed.length} players from local storage`);
                 setPlayers(parsed);
                 hasLoaded.current = true;
               }
             }
           }
         } else {
-          console.error('Store-players returned:', res.status, await res.text());
+          console.error('[App] Store-players returned error:', res.status, await res.text());
         }
       } catch (error) {
-        console.error('Failed to load roster from cloud:', error);
+        console.error('[App] ✗ Failed to load roster from cloud:', error);
         // Fallback to local storage on error
         const saved = localStorage.getItem('skateapp_players_v3');
         if (saved) {
           const parsed = JSON.parse(saved);
           if (parsed.length > 0) {
+            console.log(`[App] ✓ Loaded ${parsed.length} players from local storage (fallback)`);
             setPlayers(parsed);
             hasLoaded.current = true;
           }
@@ -91,18 +97,27 @@ const App: React.FC = () => {
 
     // Save to local storage immediately for UI responsiveness
     localStorage.setItem('skateapp_players_v3', JSON.stringify(players));
+    console.log(`[App] Saved ${players.length} players to local storage`);
 
     // Debounce save to cloud to prevent flooding
     const timeoutId = setTimeout(async () => {
       try {
-        await fetch('/.netlify/functions/store-players', {
+        console.log(`[App] Saving ${players.length} players to cloud...`);
+        const res = await fetch('/.netlify/functions/store-players', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(players)
         });
-        console.log('Roster saved to cloud');
+
+        if (res.ok) {
+          const result = await res.json();
+          console.log(`[App] ✓ Roster saved to cloud (${result.count || players.length} players)`);
+        } else {
+          const errorText = await res.text();
+          console.error(`[App] ✗ Cloud save failed with status ${res.status}:`, errorText);
+        }
       } catch (error) {
-        console.error('Failed to save roster to cloud:', error);
+        console.error('[App] ✗ Failed to save roster to cloud:', error);
       }
     }, 2000);
 
