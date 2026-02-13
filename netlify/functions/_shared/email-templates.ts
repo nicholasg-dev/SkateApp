@@ -147,6 +147,7 @@ export function buildAnnouncementEmail(
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
+    .replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" style="color: #2563eb; text-decoration: underline;">$1</a>')
     .replace(/\n/g, "<br>");
 
   const content = `
