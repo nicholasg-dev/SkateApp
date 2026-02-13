@@ -130,34 +130,58 @@ export const handler: Handler = async (event, context) => {
 
     if (event.httpMethod === "GET") {
         try {
-            const store = getStore("roster");
+            // Use explicit consistency to ensure we see recent writes
+            const store = getStore({ name: "roster", consistency: "strong" });
 
-            // Request as text so JSON.parse works (default returns ArrayBuffer)
-            const raw = await store.get("players", { type: "text" });
+            console.log("Initializing Blob Store 'roster' for GET...");
+
+            let raw: string | null = null;
+            try {
+                // Attempt to read. If store/key doesn't exist, this might return null or throw.
+                raw = await store.get("players", { type: "text" });
+            } catch (err: any) {
+                console.warn("Could not read 'players' key (store might be new/empty):", err.message);
+                // Proceed to seed logic
+            }
 
             if (raw) {
-                const data = JSON.parse(raw);
-                if (Array.isArray(data) && data.length > 0) {
-                    console.log(`Loaded ${data.length} players from blob`);
-                    return { statusCode: 200, headers, body: JSON.stringify(data) };
+                try {
+                    const data = JSON.parse(raw);
+                    // Only return if we actually have a valid array of players
+                    if (Array.isArray(data) && data.length > 0) {
+                        console.log(`Successfully loaded ${data.length} players from blob`);
+                        return { statusCode: 200, headers, body: JSON.stringify(data) };
+                    }
+                    console.log("Blob data was found but empty or invalid format. Re-seeding...");
+                } catch (parseErr) {
+                    console.error("Error parsing existing blob JSON:", parseErr);
+                    // Proceed to seed logic
                 }
+            } else {
+                console.log("Blob key 'players' not found (raw is null). Seeding...");
             }
 
-            // Blob is empty or missing — seed it
-            console.log("Blob is empty, seeding with initial data...");
+            // Case: Blob is empty, missing, or threw error -> SEED IT
             try {
+                // Determine if we need to initialize the store explicitly? 
+                // @netlify/blobs usually auto-creates on write.
                 await store.set("players", JSON.stringify(SEED_DATA));
-                console.log("Seed data written to blob successfully");
+                console.log("Seed data successfully written to 'roster' store.");
             } catch (seedErr: any) {
-                console.error("Failed to write seed data to blob:", seedErr.message);
-                // Still return seed data even if write failed
+                console.error("CRITICAL: Failed to write seed data to blob:", seedErr.message);
+                // Log context to help debug environment issues
+                console.error("Environment Context:", {
+                    hasSiteId: !!process.env.NETLIFY_SITE_ID,
+                    hasToken: !!process.env.NETLIFY_AUTH_TOKEN,
+                    blobsContext: !!process.env.NETLIFY_BLOBS_CONTEXT
+                });
             }
 
+            // Always return seed data so the app works on first load, even if persistence failed
             return { statusCode: 200, headers, body: JSON.stringify(SEED_DATA) };
 
         } catch (error: any) {
-            // Blob entirely unavailable — gracefully return seed data anyway
-            console.error("Blob GET failed, returning seed data as fallback:", error.message);
+            console.error("Fatal Blob Store error in GET handler:", error.message);
             return { statusCode: 200, headers, body: JSON.stringify(SEED_DATA) };
         }
     }
@@ -168,10 +192,12 @@ export const handler: Handler = async (event, context) => {
         }
 
         try {
-            const store = getStore("roster");
+            const store = getStore({ name: "roster", consistency: "strong" });
             const players = JSON.parse(event.body);
+
             await store.set("players", JSON.stringify(players));
             console.log(`Saved ${players.length} players to blob`);
+
             return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
         } catch (error: any) {
             console.error("Blob POST failed:", error.message);
