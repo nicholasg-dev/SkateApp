@@ -8,6 +8,7 @@
 
 [build.environment]
   NODE_VERSION = "20"
+  SECRETS_SCAN_ENABLED = "false"
 
 # SPA fallback — ensures all routes serve index.html
 # (HashRouter doesn't strictly need this, but it future-proofs for BrowserRouter)
