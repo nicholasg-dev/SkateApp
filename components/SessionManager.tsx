@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Player, SessionConfig, RsvpStatus } from '../types';
 import { generateInviteEmail } from '../services/aiService';
-import { Send, RefreshCw, Wand2, CheckCircle, XCircle, Clock, Lock, Mail, Loader2 } from 'lucide-react';
+import { Send, RefreshCw, Wand2, CheckCircle, XCircle, Clock, Lock, Mail, Loader2, Search } from 'lucide-react';
 
 interface SessionManagerProps {
   players: Player[];
@@ -31,6 +31,26 @@ const SessionManager: React.FC<SessionManagerProps> = ({
   const [invitesSent, setInvitesSent] = useState(false);
   const [isSendingEmails, setIsSendingEmails] = useState(false);
   const [sendResult, setSendResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  // Selection State
+  const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>(() => players.map(p => p.id));
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredPlayers = players.filter(p =>
+    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const toggleSelection = (id: string) => {
+    setSelectedPlayerIds(prev =>
+      prev.includes(id)
+        ? prev.filter(pId => pId !== id)
+        : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = () => setSelectedPlayerIds(players.map(p => p.id));
+  const handleUnselectAll = () => setSelectedPlayerIds([]);
 
   // Security Check
   if (!isAdmin) {
@@ -65,7 +85,15 @@ const SessionManager: React.FC<SessionManagerProps> = ({
     setIsSendingEmails(true);
     setSendResult(null);
 
-    const recipients = players.map((p) => ({ email: p.email, name: p.name }));
+    if (selectedPlayerIds.length === 0) {
+      alert('Please select at least one player to invite.');
+      setIsSendingEmails(false);
+      return;
+    }
+
+    const recipients = players
+      .filter(p => selectedPlayerIds.includes(p.id))
+      .map((p) => ({ email: p.email, name: p.name }));
 
     try {
       const res = await fetch('/.netlify/functions/send-weekly-announcement', {
@@ -190,18 +218,18 @@ const SessionManager: React.FC<SessionManagerProps> = ({
           <div className="mt-4 space-y-3">
             <button
               onClick={handleSendInvites}
-              disabled={isSendingEmails}
+              disabled={isSendingEmails || selectedPlayerIds.length === 0}
               className="w-full bg-slate-900 hover:bg-slate-800 disabled:bg-slate-500 disabled:cursor-not-allowed text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg"
             >
               {isSendingEmails ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Sending to {players.length} players...
+                  Sending to {selectedPlayerIds.length} players...
                 </>
               ) : (
                 <>
                   <Mail className="w-4 h-4" />
-                  Send Bulk Invites ({players.length} players)
+                  Send Bulk Invites ({selectedPlayerIds.length} players)
                 </>
               )}
             </button>
@@ -222,7 +250,7 @@ const SessionManager: React.FC<SessionManagerProps> = ({
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
           <h2 className="text-lg font-bold text-slate-800 mb-6">RSVP Tracker</h2>
 
-          <div className="grid grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-3 gap-4 mb-6">
             <div className="bg-green-50 p-4 rounded-lg text-center border border-green-100">
               <div className="text-2xl font-bold text-green-600">{acceptedCount}</div>
               <div className="text-xs text-green-700 font-medium uppercase tracking-wide">In</div>
@@ -237,10 +265,30 @@ const SessionManager: React.FC<SessionManagerProps> = ({
             </div>
           </div>
 
+          {/* Search Bar */}
+          <div className="mb-4 relative">
+            <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search players by name or email..."
+              className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-shadow hover:shadow-sm"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
           {/* Quick Actions (Simulation) */}
           <div className="space-y-4">
-            <div className="flex justify-between items-center pb-2 border-b border-slate-100">
-              <h3 className="font-semibold text-sm text-slate-600">Manual Overrides</h3>
+            <div className="flex justify-between items-center pb-2 border-b border-slate-100 mb-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  checked={selectedPlayerIds.length === players.length && players.length > 0}
+                  onChange={(e) => e.target.checked ? handleSelectAll() : handleUnselectAll()}
+                />
+                <h3 className="font-semibold text-sm text-slate-600">Select All</h3>
+              </div>
               <button
                 onClick={finalizeNoReplies}
                 className="text-xs text-red-500 hover:text-red-700 font-medium hover:underline"
@@ -249,41 +297,55 @@ const SessionManager: React.FC<SessionManagerProps> = ({
               </button>
             </div>
             <div className="max-h-[400px] overflow-y-auto pr-2 space-y-2">
-              {players.map(player => (
-                <div key={player.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                  <div>
-                    <div className="font-medium text-sm text-slate-900">{player.name}</div>
-                    <div className={`text-xs font-semibold ${player.status === RsvpStatus.ACCEPTED ? 'text-green-600' :
-                      player.status === RsvpStatus.DECLINED ? 'text-red-600' :
-                        player.status === RsvpStatus.NO_REPLY ? 'text-slate-400' :
-                          'text-yellow-600'
-                      }`}>{player.status.replace('_', ' ')}</div>
-                  </div>
-                  <div className="flex gap-1">
-                    <button
-                      onClick={() => updatePlayerStatus(player.id, RsvpStatus.ACCEPTED)}
-                      className={`p-1.5 rounded-md transition-colors ${player.status === RsvpStatus.ACCEPTED ? 'bg-green-100 text-green-600' : 'text-slate-400 hover:text-green-600 hover:bg-green-50'}`}
-                      title="Mark Accepted"
-                    >
-                      <CheckCircle className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={() => updatePlayerStatus(player.id, RsvpStatus.DECLINED)}
-                      className={`p-1.5 rounded-md transition-colors ${player.status === RsvpStatus.DECLINED ? 'bg-red-100 text-red-600' : 'text-slate-400 hover:text-red-600 hover:bg-red-50'}`}
-                      title="Mark Declined"
-                    >
-                      <XCircle className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={() => updatePlayerStatus(player.id, RsvpStatus.PENDING)}
-                      className={`p-1.5 rounded-md transition-colors ${player.status === RsvpStatus.PENDING ? 'bg-yellow-100 text-yellow-600' : 'text-slate-400 hover:text-yellow-600 hover:bg-yellow-50'}`}
-                      title="Reset to Pending"
-                    >
-                      <RefreshCw className="w-5 h-5" />
-                    </button>
-                  </div>
+              {filteredPlayers.length === 0 ? (
+                <div className="text-center text-slate-500 py-8 text-sm">
+                  No players found matching "{searchTerm}"
                 </div>
-              ))}
+              ) : (
+                filteredPlayers.map(player => (
+                  <div key={player.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        checked={selectedPlayerIds.includes(player.id)}
+                        onChange={() => toggleSelection(player.id)}
+                      />
+                      <div>
+                        <div className="font-medium text-sm text-slate-900">{player.name}</div>
+                        <div className={`text-xs font-semibold ${player.status === RsvpStatus.ACCEPTED ? 'text-green-600' :
+                          player.status === RsvpStatus.DECLINED ? 'text-red-600' :
+                            player.status === RsvpStatus.NO_REPLY ? 'text-slate-400' :
+                              'text-yellow-600'
+                          }`}>{player.status.replace('_', ' ')}</div>
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => updatePlayerStatus(player.id, RsvpStatus.ACCEPTED)}
+                        className={`p-1.5 rounded-md transition-colors ${player.status === RsvpStatus.ACCEPTED ? 'bg-green-100 text-green-600' : 'text-slate-400 hover:text-green-600 hover:bg-green-50'}`}
+                        title="Mark Accepted"
+                      >
+                        <CheckCircle className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={() => updatePlayerStatus(player.id, RsvpStatus.DECLINED)}
+                        className={`p-1.5 rounded-md transition-colors ${player.status === RsvpStatus.DECLINED ? 'bg-red-100 text-red-600' : 'text-slate-400 hover:text-red-600 hover:bg-red-50'}`}
+                        title="Mark Declined"
+                      >
+                        <XCircle className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={() => updatePlayerStatus(player.id, RsvpStatus.PENDING)}
+                        className={`p-1.5 rounded-md transition-colors ${player.status === RsvpStatus.PENDING ? 'bg-yellow-100 text-yellow-600' : 'text-slate-400 hover:text-yellow-600 hover:bg-yellow-50'}`}
+                        title="Reset to Pending"
+                      >
+                        <RefreshCw className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                )))
+              }
             </div>
           </div>
         </div>
